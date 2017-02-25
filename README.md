@@ -2,7 +2,7 @@ node-digikey
 ![logo](http://www.digikey.com/-/media/Images/Header/logo_dk.png)
 ====
 
-node-digikey is a node.js wrapper for the Octopart REST API.
+node-digikey is a node.js wrapper for the DigiKey REST API.
 
 Official [DigiKey REST API documentation](https://api-portal.digikey.com/).
 
@@ -19,6 +19,12 @@ var cli = require('node-digikey').createV1('myapikey');
 
 * HTTPS by default
 * Simple node.js style callbacks(err, result)
+
+##TESTS
+
+To run the tests use
+
+    npm test
 
 ##API
 
