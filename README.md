@@ -4,7 +4,7 @@ node-digikey
 
 node-digikey is a node.js wrapper for the Octopart REST API.
 
-Official [Octopart REST API documentation](http://octopart.com/api/docs/v3/rest-api).
+Official [DigiKey REST API documentation](https://api-portal.digikey.com/).
 
 ##Install
 
