@@ -9,7 +9,8 @@
   "author": "Rob Sawyer <robksawyer@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "request": "~2.33.0"
+    "request": "~2.33.0",
+    "simple-oauth2": "^1.0.3"
   },
   "repository": {
     "type": "git",

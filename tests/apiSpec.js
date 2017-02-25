@@ -7,6 +7,7 @@ var request = require('request');
 require('dotenv').config();
 require('request-debug')(request);
 
+var app = require('../app.js');
 var api = require('../index.js');
 
 describe('api', function() {
@@ -17,7 +18,6 @@ describe('api', function() {
 	afterEach(function() {
 		http.request.restore();
 	});
-
 
 	//We will place our tests cases here
 	it('should convert get result to object', function(done) {
@@ -41,8 +41,7 @@ describe('api', function() {
 		// Error: https://my-new-app.example.com/code?error=access_denied
 		// Success: https://my-new-app.example.com/code?code=6513183215H5465sdlkjKils
 
-		var cli = api.createV1(process.env.DIGIKEY_CLIENT_ID, process.env.DIGIKEY_CLIENT_SECRET, process.env.DIGIKEY_CALLBACK_URL);
-		console.log(cli);
+		var cli = app.createV1(process.env.DIGIKEY_CLIENT_ID, process.env.DIGIKEY_CLIENT_SECRET, process.env.DIGIKEY_CALLBACK_URL);
 		cli.getAuthCode(function(err, results){
 			console.log(err);
 			console.log(results);
@@ -65,17 +64,17 @@ describe('api', function() {
 	// 	assert(write.withArgs(expected).calledOnce);
 	// });
 
-	// it('should pass request error to callback', function(done) {
-	// 	var expected = 'some error';
-	// 	var request = new PassThrough();
-	//
-	// 	this.request.returns(request);
-	//
-	// 	api.get(function(err) {
-	// 		assert.equal(err, expected);
-	// 		done();
-	// 	});
-	//
-	// 	request.emit('error', expected);
-	// });
+	it('should pass request error to callback', function(done) {
+		var expected = 'some error';
+		var request = new PassThrough();
+
+		this.request.returns(request);
+
+		api.auth(function(err) {
+			assert.equal(err, expected);
+			done();
+		});
+
+		request.emit('error', expected);
+	});
 });
