@@ -2,6 +2,10 @@ var request = require('request');
 var url = require('url');
 var querystring = require('querystring');
 
+var clientId = '';
+var clientSecret = '';
+var redirectUri = '';
+
 // You can find more details about the Digikey API at https://api-portal.digikey.com/.
 
 function flatten(arr) {
@@ -10,10 +14,28 @@ function flatten(arr) {
 }
 
 // Handles getting the authorization code and refresh token
-// See https://api-portal.digikey.com/app_overview
-function getAuthorization(clientId, redirectUri, responseType){
+// ENDPOINT
+// https://sso.digikey.com/as/authorization.oauth2
+// This endpoint is the target of the initial request. It handles authenticating the user and user consent.
+// The result includes the authorization code.
+//
+// PARAMETERS
+// response_type - code
+// Tells the Authorization Server to return an authorization code.
+//
+// client_id - This is the client id assigned to the application that you generated within the API Portal.
+// Identifies the client that is making the request. The value passed in this parameter must exactly match the value assigned by the API Portal.
+//
+// redirect_uri - This URI must match the redirect URI that you defined while creating your application within the API Portal.
+// Determines where the response is sent. The value of this parameter must exactly match the URI you provided while creating your application within the API Portal (including trailing '/').
+function getAuthorizationCode(clientId, clientSecret, redirectUri, cb, responseType){
+	console.log('Running getAuthorizationCode()...');
 	if(!clientId) {
 		console.log('You must provide a DigiKey client id.');
+		return false;
+	}
+	if(!clientSecret) {
+		console.log('You must provide a DigiKey client secret.');
 		return false;
 	}
 	if(!redirectUri) {
@@ -47,7 +69,7 @@ function getAuthorization(clientId, redirectUri, responseType){
 	} : null);
 }
 
-var DigikeyNode = function(auth, apiVersion) {
+var DigiKeyNode = function(apiVersion) {
 	var self = this;
 
 	var country = 'US'; // See ISO Code http://www.nationsonline.org/oneworld/country_code_list.htm
@@ -60,7 +82,7 @@ var DigikeyNode = function(auth, apiVersion) {
 		if (typeof filters === 'function') {
 			cb = filters; // skip filters
 		} else if (filters) {
-			params = params.concat(encodeFilters(filters));
+			// params = params.concat(encodeFilters(filters));
 		}
 		var opt = {
 			method: 'POST',
@@ -94,6 +116,14 @@ var DigikeyNode = function(auth, apiVersion) {
 		} : null);
 	};
 
+	var getAuthCode = function(cb) {
+		console.log('getAuthCode()');
+		console.log(self.clientId);
+		console.log(self.clientSecret);
+		console.log(self.redirectUri);
+		return getAuthorizationCode(self.clientId, self.clientSecret, self.redirectUri, cb);
+	};
+
 	['basic', 'keyword'].forEach(function(name) {
 		// uids = '2239e3330e2df5fe' or ['2239e3330e2df5fe', ...]
 		// filters = response filters
@@ -120,21 +150,21 @@ var DigikeyNode = function(auth, apiVersion) {
 };
 
 // https://sso.digikey.com/as/authorization.oauth2?response_type=code&client_id=123456789abcdefg&redirect_uri=https://my-new-app.example.com/code
-exports.createV1 = function(clientId, redirectUri) {
+exports.createV1 = function(clientId, clientSecret, redirectUri) {
+	console.log('Inside of createV1');
 	if(!clientId){
-		clientId = process.env.DIGIKEY_CLIENT_ID;
+		self.clientId = process.env.DIGIKEY_CLIENT_ID;
+	}
+	if(!clientSecret){
+		self.clientSecret = process.env.DIGIKEY_CLIENT_SECRET;
 	}
 	if(!redirectUri){
 		if(process.env.DIGIKEY_CALLBACK_URL){
-			redirectUri = process.env.DIGIKEY_CALLBACK_URL;
+			self.redirectUri = process.env.DIGIKEY_CALLBACK_URL;
 		}
 		if(process.env.DIGIKEY_REDIRECT_URI){
-			redirectUri = process.env.DIGIKEY_REDIRECT_URI;
+			self.redirectUri = process.env.DIGIKEY_REDIRECT_URI;
 		}
 	}
-	return getAuthorization(clientId, redirectUri).then(function(err, results){
-		console.log(err);
-		console.log(results);
-		return new DigikeyNode(results, 'v1');
-	});
+	return new DigiKeyNode('v1');
 };

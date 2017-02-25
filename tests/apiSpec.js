@@ -2,6 +2,10 @@ var assert = require('assert');
 var sinon = require('sinon');
 var PassThrough = require('stream').PassThrough;
 var http = require('http');
+var request = require('request');
+
+require('dotenv').config();
+require('request-debug')(request);
 
 var api = require('../index.js');
 
@@ -17,20 +21,31 @@ describe('api', function() {
 
 	//We will place our tests cases here
 	it('should convert get result to object', function(done) {
-		var expected = { hello: 'world' };
+		var expected = {
+			"access_token": "weoiaslkjfoiw32/12#kd",
+			"refresh_token": "aslidf390-sdl/jliDLSksli",
+			"token_type": "Bearer",
+			"expires_in": 3920
+		};
 		var response = new PassThrough();
 		response.write(JSON.stringify(expected));
 		response.end();
 
 		var request = new PassThrough();
 
-		this.request
-			.callsArgWith(1, response)
-			.returns(request);
+		// this.request
+		// 	.callsArgWith(1, response)
+		// 	.returns(request);
 
-		api.get(function(err, result) {
-			console.log(result);
-			// assert.deepEqual(result, expected);
+		// Get a code
+		// Error: https://my-new-app.example.com/code?error=access_denied
+		// Success: https://my-new-app.example.com/code?code=6513183215H5465sdlkjKils
+
+		var cli = api.createV1(process.env.DIGIKEY_CLIENT_ID, process.env.DIGIKEY_CLIENT_SECRET, process.env.DIGIKEY_CALLBACK_URL);
+		console.log(cli);
+		cli.getAuthCode(function(err, results){
+			console.log(err);
+			console.log(results);
 			done();
 		});
 
