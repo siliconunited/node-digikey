@@ -4,6 +4,11 @@ var async = require('async');
 var User = keystone.list('User').model;
 var Token = keystone.list('Token').model;
 
+// INDEX ROUTE SETUP
+// DigiKey API
+// app.all('/digikey/auth', keystone.middleware.api, routes.views.apis.digikey);
+// app.all('/digikey/callback?', keystone.middleware.api, routes.views.apis.digikey);
+
 // TOKEN MODEL EXAMPLE
 // Token.add({
 // 	token: { type: String, initial: true, required: true },
