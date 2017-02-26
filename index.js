@@ -25,18 +25,20 @@ function encodeFilters(filters) {
 	return result;
 }
 
-var DigiKeyNode = function(authToken, apiVersion) {
+var DigiKeyNode = function(accessToken, apiVersion) {
 	var self = this;
 
 	self.clientId = process.env.DIGIKEY_CLIENT_ID;
 	self.clientSecret = process.env.DIGIKEY_CLIENT_SECRET;
 	self.redirectUri = process.env.DIGIKEY_CALLBACK_URL;
 	self.apiVersion = (apiVersion) ? apiVersion : 'v1';
-	self.authToken = authToken;
+	self.accessToken = accessToken;
+	self.refreshToken = null;
+	self.expiresIn = 2592000;
 
-	if(!self.authToken){
-		console.error('You must provide a valid authorization token. See https://api-portal.digikey.com/start for more.');
-		return new Error('You must provide a valid authorization token. See https://api-portal.digikey.com/start for more.');
+	if(!self.accessToken){
+		console.error('You must provide a valid access token. See https://api-portal.digikey.com/start for more.');
+		return new Error('You must provide a valid access token. See https://api-portal.digikey.com/start for more.');
 	}
 
 	// Try an alternate env variable
@@ -76,8 +78,10 @@ var DigiKeyNode = function(authToken, apiVersion) {
 		if (typeof filters === 'function') {
 			cb = filters; // skip filters
 		} else if (filters) {
-			params = params.concat(encodeFilters(filters));
+			// Filters aren't used at the moment.
+			// params = params.concat(encodeFilters(filters));
 		}
+
 		var opt = {
 			method: 'POST',
 			headers: {
@@ -85,7 +89,7 @@ var DigiKeyNode = function(authToken, apiVersion) {
 				'x-digikey-locale-currency': self.currency,
 				'x-digikey-locale-site': self.locale,
 				'x-digikey-locale-language': self.lang,
-				authorization: self.authToken,
+				authorization: self.accessToken,
 				accept: 'application/json',
 				'content-type': 'application/json',
 				'x-ibm-client-id': self.clientId
@@ -95,50 +99,66 @@ var DigiKeyNode = function(authToken, apiVersion) {
 				host: 'api.digikey.com',
 				pathname: '/services/' + service + '/' + self.apiVersion + '/' + path
 			}),
-			body: {
-				PartPreference: 'CT', Quantity: 25, PartNumber: 'P5555-ND'
-			},
+			body: params,
 			json: true
 		};
-		return request.get(opt, cb ? function(err, res, body) {
-			console.log(err);
-			console.log(res);
-			console.log(body);
-			if (err)
-				cb(err);
-			else if (res.statusCode != 200)
-				cb(new Error(JSON.parse(body).message));
-			else
-				cb(null, JSON.parse(body));
-		} : null);
+		return request.get(opt,
+			cb ? function(err, res, body) {
+				if (err){
+					cb(err);
+				} else if (res.statusCode != 200) {
+					cb(new Error(body.message));
+				} else {
+					cb(null, body);
+				}
+			} : null);
 	};
 
 	['basic', 'keyword'].forEach(function(name) {
-		// uids = '2239e3330e2df5fe' or ['2239e3330e2df5fe', ...]
-		// filters = response filters
-		// self[name + 'ByID'] = function(uids, filters, cb) {
-		// 	if (Array.isArray(uids)) {
-		// 		var params = [].concat(uids).map(function(uid) {
-		// 			return 'uid[]=' + uid;
-		// 		});
-		// 		return send(name + '/get_multi', params, filters, cb);
-		// 	} else
-		// 		return send(name + '/' + uids, [], filters, cb);
-		// };
-		// args = {q: 'foobar'} or [{q: 'foobar'}, ...]
-		// filters = response filters
-		self[name + 'Search'] = function(args, filters, cb) {
-			var params = [].concat(args).map(function(key) {
-				return querystring.stringify(key);
-			});
-			return send(name + 'search', 'search', params, filters, cb);
+		// The params are attached to the body of the request.
+		// Example params
+		// {
+		// 	PartPreference: 'CT', Quantity: 25, PartNumber: 'P5555-ND'
+		// }
+		// filters = N/A at he moment
+		self[name + 'Search'] = function(params, cb) {
+			return send(name + 'search', 'search', params, {}, cb);
 		};
 	});
+
+	// Handles refreshing the access token
+	// See https://api-portal.digikey.com/app_overview#refreshToken
+	self.refreshToken = function(refreshToken, expiresIn){
+		// A token exists
+		if(!refreshToken){
+			var err = 'Unable to find a valid Digikey token.';
+			console.error(err);
+			return new Error(err);
+		}
+
+		self.expiresIn = (expiresIn) ? expiresIn : self.expiresIn;
+
+		// JSON access token
+		const tokenObject = {
+			'access_token': self.accessToken,
+			'refresh_token': self.refreshToken,
+			'expires_in': self.expiresIn
+		};
+
+		// Create the access token wrapper
+		const token = oauth2.accessToken.create(tokenObject);
+
+		// Check if the token is expired. If expired it is refreshed.
+		if (token.expired()) {
+			// Promises
+			return token.refresh();
+		}
+	};
 
 	return self;
 };
 
 // https://sso.digikey.com/as/authorization.oauth2?response_type=code&client_id=123456789abcdefg&redirect_uri=https://my-new-app.example.com/code
-exports.createV1 = function(authToken) {
-	return new DigiKeyNode(authToken, 'v1');
+exports.createV1 = function(accessToken) {
+	return new DigiKeyNode(accessToken, 'v1');
 };
