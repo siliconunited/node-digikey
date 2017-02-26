@@ -118,7 +118,9 @@ var DigiKeyNode = function(accessToken, apiVersion) {
 		// The params are attached to the body of the request.
 		// Example params
 		// {
-		// 	PartPreference: 'CT', Quantity: 25, PartNumber: 'P5555-ND'
+		// 	PartPreference: 'CT',  //Optional parameter for PartPreference which can be CT, DKR or TR. (Cut tape, Digi-Key Reel, Tape and Reel)
+		//	Quantity: 25,
+		//  PartNumber: 'P5555-ND'
 		// }
 		// filters = N/A at he moment
 		self[name + 'Search'] = function(params, cb) {
